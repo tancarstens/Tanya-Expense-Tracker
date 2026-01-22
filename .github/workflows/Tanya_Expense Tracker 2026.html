@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Personal Tracker</title>
+    
+    <style>
+        /* THE LOOK (CSS) */
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f7f6;
+            padding: 40px;
+            color: #333;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex: 1;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .card p {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0 0;
+        }
+
+        #display-balance { color: #2ecc71; } /* Green */
+        #display-spent { color: #e74c3c; }   /* Red */
+
+        .input-area {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .input-area h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button.add-btn {
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.add-btn:hover { background-color: #2980b9; }
+
+        .clear-btn {
+            background-color: #636e72;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .clear-btn:hover { background-color: #2d3436; }
+
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th { background-color: #f8f9fa; font-weight: 600; }
+
+        .del-btn {
+            background-color: #ff7675;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Financial Dashboard</h1>
+    
+    <div class="dashboard">
+        <div class="card">
+            <h3>Total Budget</h3>
+            <p id="display-budget">R 0.00</p>
+        </div>
+        <div class="card">
+            <h3>Total Spent</h3>
+            <p id="display-spent">R 0.00</p>
+        </div>
+        <div class="card">
+            <h3>Balance</h3>
+            <p id="display-balance">R 0.00</p>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <h3>Budget Settings</h3>
+        <input type="number" id="new-budget" placeholder="Set Monthly Budget (R)">
+        <button class="add-btn" onclick="changeBudget()">Update Total Budget</button>
+    </div>
+
+    <div class="input-area">
+        <h3>Add New Expense</h3>
+        <input type="text" id="desc" placeholder="What did you buy?">
+        <input type="number" id="amount" placeholder="Amount (R)">
+        <input type="date" id="date">
+        
+        <select id="category">
+            <option value="General">General</option>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Entertainment">Entertainment</option>
+        </select>
+
+        <button class="add-btn" onclick="addExpense()">Add Expense</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="expense-body"></tbody>
+    </table>
+<button onclick="downloadCSV()" class="add-btn" style="background-color: #27ae60; margin-top: 20px;">Download to Excel</button>
+    <button onclick="clearAll()" class="clear-btn">Clear All Data</button>
+
+    <script>
+        /* THE BRAIN (JavaScript) */
+
+        // 1. Create or Load the Data
+        let totalBudget = parseFloat(localStorage.getItem("myBudget")) || 0.00;
+        let expenses = JSON.parse(localStorage.getItem("myExpenses")) || [];
+
+        // 2. The Logic to Change Budget
+        function changeBudget() {
+            const budgetInput = document.getElementById("new-budget").value;
+            if(budgetInput) {
+                totalBudget = parseFloat(budgetInput);
+                localStorage.setItem("myBudget", totalBudget);
+                updateDashboard();
+                document.getElementById("new-budget").value = "";
+            }
+        }
+
+        // 3. The Logic to Calculate Totals
+        function updateDashboard() {
+            let spent = 0;
+            expenses.forEach(item => {
+                spent += parseFloat(item.amount);
+            });
+
+            let balance = totalBudget - spent;
+
+            document.getElementById("display-budget").innerText = "R " + totalBudget.toFixed(2);
+            document.getElementById("display-spent").innerText = "R " + spent.toFixed(2);
+            document.getElementById("display-balance").innerText = "R " + balance.toFixed(2);
+        }
+
+        // 4. The Logic to Draw the Table
+        function renderTable() {
+            const tbody = document.getElementById("expense-body");
+            tbody.innerHTML = ""; 
+
+            expenses.forEach(item => {
+                const row = `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td>${item.category}</td>
+                        <td>${item.desc}</td>
+                        <td>R ${parseFloat(item.amount).toFixed(2)}</td>
+                        <td><button class="del-btn" onclick="deleteExpense(${item.id})">Delete</button></td>
+                    </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // 5. The Logic to Add a New Expense
+        function addExpense() {
+            const desc = document.getElementById("desc").value;
+            const amount = document.getElementById("amount").value;
+            const date = document.getElementById("date").value;
+            const category = document.getElementById("category").value;
+
+            if(desc && amount && date) {
+                const newEntry = { desc, amount, date, category, id: Date.now() };
+                expenses.push(newEntry);
+                
+                // Save and Refresh
+                localStorage.setItem("myExpenses", JSON.stringify(expenses));
+                renderTable();
+                updateDashboard();
+
+                // Clear Input Boxes
+                document.getElementById("desc").value = "";
+                document.getElementById("amount").value = "";
+                document.getElementById("date").value = "";
+            } else {
+                alert("Please fill in all fields");
+            }
+        }
+
+        // 6. The Logic to Delete
+        function deleteExpense(id) {
+            expenses = expenses.filter(item => item.id !== id);
+            localStorage.setItem("myExpenses", JSON.stringify(expenses));
+            renderTable();
+            updateDashboard();
+        }
+
+        // 7. The Logic to Clear All
+        function clearAll() {
+            if(confirm("Are you sure you want to delete everything?")) {
+                expenses = [];
+                localStorage.removeItem("myExpenses");
+                renderTable();
+                updateDashboard();
+            }
+        }
+
+        // 8. Run on Startup
+        renderTable(); 
+        updateDashboard();
+
+        function downloadCSV() {
+            // 1. Create the Header of your Excel sheet
+            let csvContent = "Date,Category,Description,Amount\n";
+
+            // 2. Add every expense row to the text
+            expenses.forEach(item => {
+                csvContent += `${item.date},${item.category},${item.desc},${item.amount}\n`;
+            });
+
+            // 3. Create a hidden "download link" and click it automatically
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'my_expenses.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } // This was the missing bracket!
+    </script>
+</body>
+</html>
